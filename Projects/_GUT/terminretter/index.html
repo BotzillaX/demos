@@ -353,17 +353,18 @@
       <div class="actions">
         <a class="pill pill-primary" id="buy" href="{{PAYMENT_LINK}}">Zugang sichern</a>
       </div>
-      <form class="capture" id="capture" action="https://formsubmit.co/kevinfritsch5@gmail.com" method="POST">
+      <form class="capture" id="capture" action="https://script.google.com/macros/s/AKfycbzXwTCXDM5FejEF8VqoEVb-y1eAl4SttYu3gyK-_Zn9b0eLgSJn58gFGW5iDJ_ufe8t9w/exec" method="POST">
         <input type="hidden" name="_subject" value="Warteliste — TerminRetter">
         <input type="hidden" name="_template" value="table">
         <input type="hidden" name="_captcha" value="false">
         <input type="hidden" name="_autoresponse" value="Danke für dein Interesse an TerminRetter! Du stehst auf der Warteliste und hörst als Erste:r von uns — mit dem Einführungspreis, sobald wir live gehen. — Kevin">
-        <input type="hidden" name="projekt" value="TerminRetter">
+        <input type="hidden" name="projekt" value="terminretter">
         <input type="hidden" name="branche" id="varField" value="">
         <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
         <input id="email" name="email" type="email" placeholder="Deine E-Mail – Start &amp; Einführungspreis" required>
         <button class="pill pill-primary" type="submit">Auf die Warteliste</button>
       </form>
+      <p style="font-size:.8rem;color:var(--muted);line-height:1.45;margin:.5rem 0 0">Mit dem Eintragen speicherst du deine E-Mail bei uns, damit wir dich zum Start benachrichtigen. Keine Weitergabe an Dritte, jederzeit widerrufbar.</p>
       <p class="note" id="note"></p>
     </div>
     <p class="demoflag">Das hier ist eine Demo mit festen, handgeschriebenen Beispiel-Abläufen pro Branche — noch ohne echten SMS/WhatsApp-Versand, ohne Kalender-Anbindung und ohne Zahlungen. Der Rettungs-Effekt ist real, aber kein Tool verhindert alle No-Shows. Die Verlust-Rechnung benutzt deine eigenen Zahlen. Dein Studio-Name bleibt auf deinem Gerät.</p>
@@ -571,27 +572,16 @@
   // ── Warteliste (FormSubmit.co) mit Native-Submit-Fallback ──
   var note=$("#note"); function flash(t,err){ note.textContent=t; note.style.color=err?"var(--danger)":"var(--accent)"; }
   var cap=$("#capture"), buy=$("#buy");
-  var LEADKEY="terminretter.lead", AJAX="https://formsubmit.co/ajax/kevinfritsch5@gmail.com";
+  var LEADKEY="terminretter.lead", ENDPOINT="https://script.google.com/macros/s/AKfycbzXwTCXDM5FejEF8VqoEVb-y1eAl4SttYu3gyK-_Zn9b0eLgSJn58gFGW5iDJ_ufe8t9w/exec";
   try{ if(localStorage.getItem(LEADKEY)) flash("Du bist schon auf der Warteliste."); }catch(e){}
   cap.addEventListener("submit", function(e){
     e.preventDefault();
     var email=$("#email").value.trim();
     if(email.indexOf("@")<1){ flash("Bitte eine gültige E-Mail eingeben.",true); return; }
-    var btn=cap.querySelector("button[type=submit]");
+    var btn=cap.querySelector("button[type=submit]"); var honey=(cap.querySelector("[name=_honey]")||{}).value||"";
     btn.disabled=true; btn.textContent="Moment…";
-    fetch(AJAX,{method:"POST",headers:{"Accept":"application/json"},body:new FormData(cap)})
-      .then(function(r){ return r.json().catch(function(){return{};}); })
-      .then(function(res){
-        try{ localStorage.setItem(LEADKEY,email); }catch(x){}
-        if(res && (res.success==="true"||res.success===true)){
-          cap.reset(); btn.disabled=false; btn.textContent="Eingetragen ✓";
-          flash("Top! Du bekommst gleich eine Bestätigungsmail und hörst von uns, sobald TerminRetter live geht.");
-        } else { flash("Wird gesendet…"); cap.submit(); }
-      })
-      .catch(function(){
-        try{ localStorage.setItem(LEADKEY,email); }catch(x){}
-        flash("Wird gesendet…"); cap.submit();
-      });
+    function done(){ try{ localStorage.setItem(LEADKEY,email); }catch(x){} cap.reset(); btn.disabled=false; btn.textContent="Eingetragen ✓"; flash("Top! Du stehst auf der Warteliste und hörst von uns, sobald TerminRetter live geht."); }
+    fetch(ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({email:email,projekt:"terminretter",einwilligung:true,quelle:location.href,_honey:honey})}).then(done).catch(done);
   });
   buy.addEventListener("click", function(e){
     if((buy.getAttribute("href")||"").indexOf("{{")!==-1){ e.preventDefault();

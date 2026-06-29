@@ -286,16 +286,17 @@
     <h3>Protokoll als sauberes PDF sichern</h3>
     <p>Beidseitig unterschrieben, mit Fotos und Zählerständen — als PDF zum Speichern und an beide Parteien schicken. Einmalig, kein Abo.</p>
     <a class="buy" id="buy" href="{{PAYMENT_LINK}}">Protokoll als PDF sichern</a>
-    <form class="capture" id="capture" action="https://formsubmit.co/kevinfritsch5@gmail.com" method="POST">
+    <form class="capture" id="capture" action="https://script.google.com/macros/s/AKfycbzXwTCXDM5FejEF8VqoEVb-y1eAl4SttYu3gyK-_Zn9b0eLgSJn58gFGW5iDJ_ufe8t9w/exec" method="POST">
       <input type="hidden" name="_subject" value="Warteliste — ÜbergabeKlar">
       <input type="hidden" name="_template" value="table">
       <input type="hidden" name="_captcha" value="false">
       <input type="hidden" name="_autoresponse" value="Danke für deine Anmeldung bei ÜbergabeKlar! Du stehst auf der Warteliste und bekommst als Erste:r Bescheid, sobald der PDF-Export live geht. — Kevin">
-      <input type="hidden" name="projekt" value="ÜbergabeKlar">
+      <input type="hidden" name="projekt" value="uebergabeklar">
       <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
       <input id="email" name="email" type="email" placeholder="Deine E-Mail – Bescheid beim Start" required>
       <button type="submit">Auf die Warteliste</button>
     </form>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.45;margin:.5rem 0 0">Mit dem Eintragen speicherst du deine E-Mail bei uns, damit wir dich zum Start benachrichtigen. Keine Weitergabe an Dritte, jederzeit widerrufbar.</p>
     <p class="note" id="note"></p>
   </div>
 
@@ -680,31 +681,17 @@
   var note=$("#note");
   function flash(t,err){ note.textContent=t; note.style.color=err?"#e87073":""; }
   var cap=$("#capture"), buy=$("#buy");
-  var LEADKEY="uebergabeklar.lead", AJAX="https://formsubmit.co/ajax/kevinfritsch5@gmail.com";
+  var LEADKEY="uebergabeklar.lead", ENDPOINT="https://script.google.com/macros/s/AKfycbzXwTCXDM5FejEF8VqoEVb-y1eAl4SttYu3gyK-_Zn9b0eLgSJn58gFGW5iDJ_ufe8t9w/exec";
   try{ if(localStorage.getItem(LEADKEY)) flash("Du bist schon auf der Warteliste ✓"); }catch(e){}
   cap.addEventListener("submit", function(e){
     e.preventDefault();
     var email=$("#email").value.trim();
     if(email.indexOf("@")<1){ flash("Bitte eine gültige E-Mail eingeben.",true); return; }
-    var btn=cap.querySelector("button[type=submit]"), orig=btn.textContent;
+    var btn=cap.querySelector("button[type=submit]");
+    var honey=(cap.querySelector("[name=_honey]")||{}).value||"";
     btn.disabled=true; btn.textContent="Moment…";
-    fetch(AJAX,{method:"POST",headers:{"Accept":"application/json"},body:new FormData(cap)})
-      .then(function(r){ return r.json().catch(function(){return{};}); })
-      .then(function(res){
-        try{ localStorage.setItem(LEADKEY,email); }catch(x){}
-        if(res && (res.success==="true"||res.success===true)){
-          cap.reset(); btn.textContent="Eingetragen ✓";
-          flash("Top! Du bekommst gleich eine Bestätigungsmail und hörst von uns, sobald der Export live geht.");
-        } else {
-          btn.disabled=false; btn.textContent=orig;
-          flash("Deine Mail ist notiert — die Warteliste wird gerade freigeschaltet.");
-        }
-      })
-      .catch(function(){
-        try{ localStorage.setItem(LEADKEY,email); }catch(x){}
-        btn.disabled=false; btn.textContent=orig;
-        flash("Notiert! Wird übermittelt, sobald die Seite online ist.");
-      });
+    function done(){ try{ localStorage.setItem(LEADKEY,email); }catch(x){} cap.reset(); btn.textContent="Eingetragen ✓"; flash("Top! Du stehst auf der Warteliste und bekommst Bescheid, sobald der Export live geht."); }
+    fetch(ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({email:email,projekt:"uebergabeklar",einwilligung:true,quelle:location.href,_honey:honey})}).then(done).catch(done);
   });
   buy.addEventListener("click", function(e){
     if((buy.getAttribute("href")||"").indexOf("{{")!==-1){ e.preventDefault();
