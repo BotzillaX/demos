@@ -34,6 +34,8 @@ jobs:
         run: node .github/scripts/build-index.mjs
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Demo-Ordner als Pages-Artefakt hochladen
         uses: actions/upload-pages-artifact@v3
