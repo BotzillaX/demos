@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ÜbergabeKlar — Wohnungsübergabe sauber protokollieren</title>
+<meta name="description" content="Wohnungsübergabe in 10 Minuten dokumentieren: Zählerstände, Schlüssel, Mängel mit Foto. Beide unterschreiben, fertiges Protokoll als PDF. Schützt deine Kaution.">
+<style>
+  :root{
+    --bg:#0d0f13;--surface:#171a20;--surface2:#1f232b;--line:#2a2f39;
+    --ink:#f5f7fa;--muted:#8b95a3;
+    --accent:#ff6a2b;--accent2:#ff9a5b;--ok:#36c98a;--warn:#f3a536;--bad:#e87073;
+    --mono:ui-monospace,Menlo,Consolas,monospace;
+    --shadow:0 14px 38px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(120% 60% at 100% -5%,rgba(255,106,43,.16),transparent 60%),
+      radial-gradient(100% 55% at 0% 0%,rgba(54,201,138,.10),transparent 55%),
+      var(--bg);
+    color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;padding-bottom:84px}
+  .wrap{max-width:600px;margin:0 auto;padding:0 14px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  header{position:sticky;top:0;z-index:20;margin:0 -14px;padding:14px 14px 12px;
+    background:rgba(13,15,19,.74);backdrop-filter:blur(16px) saturate(1.3);
+    -webkit-backdrop-filter:blur(16px) saturate(1.3);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:11px}
+  .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:21px;
+    background:linear-gradient(140deg,var(--accent),var(--accent2));box-shadow:0 6px 16px rgba(255,106,43,.4)}
+  .brand h1{font-size:1.32rem;font-weight:850;letter-spacing:-.03em;margin:0;
+    background:linear-gradient(90deg,#fff,#ffd9c2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .brand .sub{font:650 .73rem var(--mono);color:var(--muted);margin-top:1px}
+
+  .hero{margin:18px 2px 4px}
+  .hero h2{font-size:1.5rem;line-height:1.2;letter-spacing:-.02em;margin:0 0 7px}
+  .hero h2 b{color:var(--accent)}
+  .hero p{color:var(--muted);margin:0;font-size:.96rem}
+
+  /* Fortschritt */
+  .steps{display:flex;gap:6px;margin:16px 2px 4px}
+  .steps .s{flex:1;height:5px;border-radius:99px;background:var(--surface2);overflow:hidden}
+  .steps .s i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s ease}
+  .progresslbl{font:700 .76rem var(--mono);color:var(--muted);margin:8px 2px 0}
+  .progresslbl b{color:var(--ok)}
+
+  .card{background:linear-gradient(180deg,var(--surface),#13161b);border:1px solid var(--line);
+    border-radius:18px;padding:16px;margin-top:14px;box-shadow:var(--shadow)}
+  .card > h3{margin:0 0 3px;font-size:1.05rem;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .card > .hint{color:var(--muted);font-size:.83rem;margin:0 0 13px}
+  .num{width:23px;height:23px;border-radius:7px;background:var(--surface2);border:1px solid var(--line);
+    display:inline-grid;place-items:center;font:800 .78rem var(--mono);color:var(--accent);flex:0 0 auto}
+
+  label.fld{display:block;margin-top:11px}
+  label.fld:first-of-type{margin-top:0}
+  .fld span{display:block;font:700 .74rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+  input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:11px;
+    color:var(--ink);padding:12px;font-size:.96rem;outline:none;font-family:inherit;transition:border-color .18s,box-shadow .18s}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,106,43,.12)}
+  textarea{resize:vertical;min-height:46px}
+  .row2{display:flex;gap:10px}
+  .row2 > *{flex:1;min-width:0}
+
+  /* Typ-Schalter */
+  .seg{display:flex;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:4px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--muted);font:750 .9rem system-ui;
+    padding:10px;border-radius:9px;cursor:pointer;transition:all .18s}
+  .seg button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a0d05;box-shadow:0 4px 12px rgba(255,106,43,.3)}
+
+  /* Zähler */
+  .meters{display:flex;flex-direction:column;gap:10px}
+  .meter{display:flex;align-items:center;gap:11px}
+  .meter .mi{width:40px;height:40px;border-radius:11px;background:var(--surface2);border:1px solid var(--line);
+    display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+  .meter .ml{flex:1;min-width:0}
+  .meter .ml b{display:block;font-size:.92rem}
+  .meter .ml small{color:var(--muted);font-size:.76rem}
+  .meter .mw{display:flex;align-items:center;gap:6px}
+  .meter input{width:110px;text-align:right}
+  .meter .unit{font:700 .8rem var(--mono);color:var(--muted);width:32px}
+
+  /* Schlüssel-Stepper */
+  .keys{display:flex;flex-direction:column;gap:9px}
+  .keyrow{display:flex;align-items:center;gap:11px}
+  .keyrow .kn{flex:1;font-size:.94rem}
+  .stepper{display:flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:3px}
+  .stepper button{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font-size:20px;cursor:pointer;border-radius:8px;line-height:1}
+  .stepper button:active{background:var(--line)}
+  .stepper .v{width:30px;text-align:center;font:800 1rem var(--mono)}
+
+  /* Räume */
+  .room{background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:11px;
+    animation:rise .35s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .room .rh{display:flex;align-items:center;gap:9px}
+  .room .rh input.rname{font-weight:800;font-size:1rem;background:transparent;border:0;padding:6px 4px;flex:1;border-bottom:1px dashed transparent}
+  .room .rh input.rname:focus{border-bottom-color:var(--accent);box-shadow:none}
+  .room .del{background:transparent;border:1px solid var(--line);color:var(--muted);width:32px;height:32px;
+    border-radius:9px;font-size:16px;cursor:pointer;flex:0 0 auto;line-height:1}
+  .room .del:hover{color:var(--bad);border-color:var(--bad)}
+  .zust{display:flex;gap:6px;margin:11px 0 4px;flex-wrap:wrap}
+  .zust button{border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    font:650 .8rem system-ui;padding:7px 11px;border-radius:999px;cursor:pointer;transition:all .15s}
+  .zust button[data-on="gut"].on{color:#bff3da;background:rgba(54,201,138,.14);border-color:rgba(54,201,138,.5)}
+  .zust button[data-on="spuren"].on{color:#f8d9a6;background:rgba(243,165,54,.14);border-color:rgba(243,165,54,.5)}
+  .zust button[data-on="maengel"].on{color:#f6c1bc;background:rgba(232,112,115,.14);border-color:rgba(232,112,115,.5)}
+
+  .mlist{margin-top:9px;display:flex;flex-direction:column;gap:8px}
+  .mangel{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px}
+  .mangel .mtop{display:flex;gap:8px;align-items:center}
+  .mangel input.mtext{flex:1;font-size:.9rem;padding:9px 10px}
+  .mangel .mdel{background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1}
+  .mangel .mdel:hover{color:var(--bad)}
+  .mangel .mbot{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .sev{display:flex;gap:5px}
+  .sev button{border:1px solid var(--line);background:var(--surface2);color:var(--muted);
+    font:700 .72rem var(--mono);padding:6px 9px;border-radius:8px;cursor:pointer}
+  .sev button[data-s="leicht"].on{color:#bff3da;border-color:var(--ok)}
+  .sev button[data-s="mittel"].on{color:#f8d9a6;border-color:var(--warn)}
+  .sev button[data-s="schwer"].on{color:#f6c1bc;border-color:var(--bad)}
+  .photo{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .photo label{display:inline-flex;align-items:center;gap:6px;font:700 .76rem system-ui;color:var(--muted);
+    border:1px dashed var(--line);border-radius:9px;padding:7px 10px;cursor:pointer}
+  .photo label:hover{color:var(--ink);border-color:var(--accent)}
+  .photo input[type=file]{display:none}
+  .thumb{position:relative;width:42px;height:42px;border-radius:9px;overflow:hidden;border:1px solid var(--line);flex:0 0 auto}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--bad);
+    color:#fff;border:2px solid var(--bg);font-size:12px;cursor:pointer;display:grid;place-items:center;line-height:1}
+
+  .addmangel{margin-top:9px;background:transparent;border:1px dashed var(--line);color:var(--muted);
+    width:100%;padding:9px;border-radius:10px;font:700 .82rem system-ui;cursor:pointer}
+  .addmangel:hover{color:var(--ink);border-color:var(--accent)}
+
+  .addroom{margin-top:13px}
+  .quickrooms{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .quickrooms button{border:1px solid var(--line);background:var(--surface2);color:var(--muted);
+    font:650 .82rem system-ui;padding:8px 12px;border-radius:999px;cursor:pointer;transition:all .15s}
+  .quickrooms button:hover{color:#1a0d05;background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+  .quickrooms button:active{transform:scale(.95)}
+
+  /* Vorschau als "Papier" */
+  .paper{background:#f7f8fa;color:#1c2128;border-radius:14px;padding:20px 18px;margin-top:13px;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 12px 30px rgba(0,0,0,.4);font-size:.86rem;line-height:1.5}
+  .paper .ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1c2128;padding-bottom:10px;margin-bottom:13px}
+  .paper .ph .t{font-weight:850;font-size:1.02rem;letter-spacing:-.01em}
+  .paper .ph .badge{font:800 .68rem var(--mono);text-transform:uppercase;letter-spacing:.06em;
+    background:#1c2128;color:#fff;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .paper .grid2{display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+  .paper .grid2 dt{color:#5b6571;font-weight:700;font-size:.78rem}
+  .paper .grid2 dd{margin:0;font-weight:600}
+  .paper h5{margin:15px 0 6px;font:800 .72rem var(--mono);text-transform:uppercase;letter-spacing:.07em;color:#3a4150;
+    border-bottom:1px solid #dde1e7;padding-bottom:4px}
+  .paper .kv{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted #e2e6eb}
+  .paper .proom{margin:8px 0}
+  .paper .proom .pn{font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .paper .ztag{font:800 .64rem var(--mono);padding:2px 7px;border-radius:6px;white-space:nowrap}
+  .paper .ztag.gut{background:#dcf5e9;color:#176b4a}
+  .paper .ztag.spuren{background:#fcefd6;color:#8a5a14}
+  .paper .ztag.maengel{background:#fadcdc;color:#9c2f31}
+  .paper .pm{margin:3px 0 3px 2px;display:flex;gap:6px;align-items:flex-start}
+  .paper .pm .s{font:800 .6rem var(--mono);text-transform:uppercase;padding:1px 6px;border-radius:5px;flex:0 0 auto;margin-top:1px}
+  .paper .pm .s.leicht{background:#dcf5e9;color:#176b4a}
+  .paper .pm .s.mittel{background:#fcefd6;color:#8a5a14}
+  .paper .pm .s.schwer{background:#fadcdc;color:#9c2f31}
+  .paper .pm .pf{font-size:.74rem;color:#5b6571}
+  .paper .pthumbs{display:flex;gap:5px;margin:5px 0 0 2px;flex-wrap:wrap}
+  .paper .pthumbs img{width:46px;height:46px;object-fit:cover;border-radius:6px;border:1px solid #d4d8df}
+  .paper .none{color:#8a93a0;font-style:italic;font-size:.82rem}
+  .paper .sign{display:flex;gap:18px;margin-top:18px;padding-top:6px}
+  .paper .sign div{flex:1;border-top:1.5px solid #1c2128;padding-top:5px;font-size:.74rem;color:#5b6571;text-align:center}
+  .paper .pfoot{margin-top:14px;font-size:.7rem;color:#8a93a0;text-align:center}
+
+  /* CTA */
+  .cta{margin-top:14px;background:linear-gradient(135deg,#2a1812,#15181e);border:1px solid #3d2618;border-radius:18px;padding:20px}
+  .cta h3{margin:0 0 5px;font-size:1.16rem;letter-spacing:-.01em}
+  .cta p{margin:0 0 14px;color:var(--muted);font-size:.9rem}
+  .buy{display:block;text-align:center;text-decoration:none;font-weight:850;padding:15px;border-radius:13px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a0d05;box-shadow:0 8px 22px rgba(255,106,43,.35);transition:transform .15s}
+  .buy:active{transform:scale(.99)}
+  .capture{display:flex;gap:8px;margin-top:13px}
+  .capture input{flex:1}
+  .capture button{background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:11px;padding:0 15px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .note{color:var(--ok);font-size:.85rem;margin:9px 2px 0;min-height:1.1em}
+
+  .demoflag{text-align:center;color:var(--muted);font-size:.8rem;margin:16px 6px 0;line-height:1.5}
+  footer{margin:22px 0 0;color:var(--muted);font-size:.76rem;text-align:center;line-height:1.7}
+  footer a{color:var(--muted)}
+
+  /* Sticky Übersicht */
+  .dockbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(31,35,43,.93);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);
+    padding:11px 14px;display:flex;align-items:center;gap:12px}
+  .dockbar .stat{flex:1;display:flex;gap:14px;font:700 .8rem var(--mono);color:var(--muted)}
+  .dockbar .stat b{color:var(--ink)}
+  .dockbar .stat .warnv{color:var(--warn)}
+  .dockbar .go{border:0;font-weight:850;padding:11px 16px;border-radius:11px;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a0d05;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">🔑</div>
+      <div><h1>ÜbergabeKlar</h1><div class="sub">Wohnungsübergabe · Protokoll</div></div>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h2>Übergabe sauber dokumentiert. <b>Kaution geschützt.</b></h2>
+    <p>Geh Raum für Raum durch, halte Zählerstände, Schlüssel und Mängel mit Foto fest. Unten entsteht live dein Protokoll.</p>
+  </div>
+
+  <div class="steps" id="steps">
+    <div class="s"><i></i></div><div class="s"><i></i></div><div class="s"><i></i></div><div class="s"><i></i></div>
+  </div>
+  <div class="progresslbl" id="progresslbl">Noch nichts ausgefüllt</div>
+
+  <!-- 1 ECKDATEN -->
+  <section class="card">
+    <h3><span class="num">1</span> Eckdaten</h3>
+    <p class="hint">Wer übergibt an wen, wo und wann.</p>
+    <div class="seg" id="typseg">
+      <button data-typ="auszug" class="on">Auszug (ich ziehe aus)</button>
+      <button data-typ="einzug">Einzug (ich ziehe ein)</button>
+    </div>
+    <label class="fld"><span>Adresse der Wohnung</span>
+      <input id="adresse" type="text" placeholder="Musterstraße 12, 06108 Halle" autocomplete="off"></label>
+    <div class="row2">
+      <label class="fld"><span>Datum</span><input id="datum" type="date"></label>
+      <label class="fld"><span>Mieter</span><input id="mieter" type="text" placeholder="Name Mieter"></label>
+    </div>
+    <label class="fld"><span>Vermieter / Verwaltung</span>
+      <input id="vermieter" type="text" placeholder="Name Vermieter"></label>
+  </section>
+
+  <!-- 2 ZÄHLERSTÄNDE -->
+  <section class="card">
+    <h3><span class="num">2</span> Zählerstände</h3>
+    <p class="hint">Der häufigste Streitpunkt nach dem Auszug. Genau jetzt ablesen.</p>
+    <div class="meters">
+      <div class="meter"><div class="mi">⚡</div>
+        <div class="ml"><b>Strom</b><small>Zählerstand ablesen</small></div>
+        <div class="mw"><input id="z_strom" type="number" inputmode="decimal" placeholder="0"><span class="unit">kWh</span></div></div>
+      <div class="meter"><div class="mi">🔥</div>
+        <div class="ml"><b>Gas</b><small>falls vorhanden</small></div>
+        <div class="mw"><input id="z_gas" type="number" inputmode="decimal" placeholder="0"><span class="unit">m³</span></div></div>
+      <div class="meter"><div class="mi">💧</div>
+        <div class="ml"><b>Wasser</b><small>kalt, ggf. warm</small></div>
+        <div class="mw"><input id="z_wasser" type="number" inputmode="decimal" placeholder="0"><span class="unit">m³</span></div></div>
+    </div>
+  </section>
+
+  <!-- 3 SCHLÜSSEL -->
+  <section class="card">
+    <h3><span class="num">3</span> Übergebene Schlüssel</h3>
+    <p class="hint">Anzahl tippen. Fehlende Schlüssel sind später teuer.</p>
+    <div class="keys" id="keys"></div>
+  </section>
+
+  <!-- 4 RÄUME -->
+  <section class="card">
+    <h3><span class="num">4</span> Räume &amp; Mängel</h3>
+    <p class="hint">Pro Raum den Zustand wählen und Mängel mit Foto belegen.</p>
+    <div id="rooms"></div>
+    <div class="addroom">
+      <div style="font:700 .76rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Raum hinzufügen</div>
+      <div class="quickrooms" id="quickrooms"></div>
+    </div>
+  </section>
+
+  <!-- VORSCHAU -->
+  <section class="card">
+    <h3>📄 Protokoll-Vorschau</h3>
+    <p class="hint">So sieht dein fertiges Dokument aus. Aktualisiert sich live.</p>
+    <div class="paper" id="paper"></div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h3>Protokoll als sauberes PDF sichern</h3>
+    <p>Beidseitig unterschrieben, mit Fotos und Zählerständen — als PDF zum Speichern und an beide Parteien schicken. Einmalig, kein Abo.</p>
+    <a class="buy" id="buy" href="{{PAYMENT_LINK}}">Protokoll als PDF sichern</a>
+    <form class="capture" id="capture" action="https://formsubmit.co/kevinfritsch5@gmail.com" method="POST">
+      <input type="hidden" name="_subject" value="Warteliste — ÜbergabeKlar">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_autoresponse" value="Danke für deine Anmeldung bei ÜbergabeKlar! Du stehst auf der Warteliste und bekommst als Erste:r Bescheid, sobald der PDF-Export live geht. — Kevin">
+      <input type="hidden" name="projekt" value="ÜbergabeKlar">
+      <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+      <input id="email" name="email" type="email" placeholder="Deine E-Mail – Bescheid beim Start" required>
+      <button type="submit">Auf die Warteliste</button>
+    </form>
+    <p class="note" id="note"></p>
+  </div>
+
+  <p class="demoflag">Das hier ist eine Demo: Eingabe, Fotos und die Vorschau sind echt und bleiben auf diesem Gerät gespeichert. Der PDF-Export, das eigene Logo und der Versand an beide Parteien kommen in der App. Kein Anwaltsersatz — ein sauber belegtes Beweismittel.</p>
+
+  <footer>
+    ÜbergabeKlar · Early Access · © <span id="yr">2026</span><br>
+    <a href="../index.html">← Alle Demos</a>
+  </footer>
+</div>
+
+<div class="dockbar">
+  <div class="stat" id="dockstat">
+    <span><b id="d_rooms">0</b> Räume</span>
+    <span><b id="d_maengel">0</b> Mängel</span>
+    <span><b id="d_fotos">0</b> Fotos</span>
+  </div>
+  <button class="go" id="dockgo">PDF sichern</button>
+</div>
+
+<datalist id="mangel-vorschlaege">
+  <option>Kratzer im Bodenbelag</option>
+  <option>Dübellöcher in der Wand</option>
+  <option>Bohrlöcher</option>
+  <option>Fleck an der Decke</option>
+  <option>Schimmel in der Ecke</option>
+  <option>Silikonfuge vergilbt</option>
+  <option>Fenstergriff locker</option>
+  <option>Tür schließt nicht richtig</option>
+  <option>Wand muss gestrichen werden</option>
+  <option>Verfärbung / Vergilbung</option>
+  <option>Glasbruch / Riss</option>
+  <option>Heizung tropft</option>
+</datalist>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var KEY = "uebergabeklar.v1";
+
+  var ZUST = {
+    gut:    {lbl:"Gut, keine Mängel"},
+    spuren: {lbl:"Normale Gebrauchsspuren"},
+    maengel:{lbl:"Mängel vorhanden"}
+  };
+  var QUICK = ["Flur","Wohnzimmer","Küche","Bad / WC","Schlafzimmer","Kinderzimmer","Balkon","Keller","Abstellraum"];
+
+  // --- ID-Zähler (kein Math.random nötig) ---
+  var seq = 1;
+  function uid(){ return seq++; }
+
+  // --- Standardzustand ---
+  var state = {
+    typ:"auszug",
+    adresse:"", datum:"", mieter:"", vermieter:"",
+    zaehler:{strom:"",gas:"",wasser:""},
+    schluessel:[
+      {name:"Haustür", n:1},
+      {name:"Wohnungstür", n:2},
+      {name:"Briefkasten", n:1},
+      {name:"Keller / Boden", n:1}
+    ],
+    raeume:[
+      {id:uid(), name:"Wohnzimmer", zust:"spuren", maengel:[]},
+      {id:uid(), name:"Küche", zust:"gut", maengel:[]}
+    ]
+  };
+
+  // --- Persistenz (Fotos werden NICHT gespeichert: Quota) ---
+  function save(){
+    try{
+      var slim = JSON.parse(JSON.stringify(state));
+      slim.raeume.forEach(function(r){ r.maengel.forEach(function(m){ if(m.foto) m.foto = "__stripped__"; }); });
+      localStorage.setItem(KEY, JSON.stringify(slim));
+    }catch(e){}
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY); if(!raw) return;
+      var s = JSON.parse(raw); if(!s || !s.raeume) return;
+      s.raeume.forEach(function(r){ r.maengel.forEach(function(m){ if(m.foto==="__stripped__") m.foto=null; }); });
+      state = s;
+      // seq über alle vorhandenen IDs heben
+      state.raeume.forEach(function(r){ if(r.id>=seq) seq=r.id+1;
+        r.maengel.forEach(function(m){ if(m.id>=seq) seq=m.id+1; }); });
+    }catch(e){}
+  }
+
+  function fmtDate(iso){
+    if(!iso) return "—";
+    var p = iso.split("-"); if(p.length!==3) return iso;
+    return p[2]+"."+p[1]+"."+p[0];
+  }
+  function esc(t){ return (t==null?"":String(t)); }
+
+  // ============ STATISCHE FELDER BINDEN ============
+  function bindStatic(){
+    // Typ
+    var seg = $("#typseg");
+    seg.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      state.typ = b.getAttribute("data-typ");
+      Array.prototype.forEach.call(seg.children, function(c){ c.classList.toggle("on", c===b); });
+      update();
+    });
+    // Textfelder
+    [["#adresse","adresse"],["#mieter","mieter"],["#vermieter","vermieter"]].forEach(function(p){
+      var el = $(p[0]); el.value = state[p[1]] || "";
+      el.addEventListener("input", function(){ state[p[1]] = el.value; update(); });
+    });
+    // Datum (Default: heute)
+    var dt = $("#datum");
+    if(!state.datum){ var d=new Date(); state.datum = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+    dt.value = state.datum;
+    dt.addEventListener("input", function(){ state.datum = dt.value; update(); });
+    // Zähler
+    [["#z_strom","strom"],["#z_gas","gas"],["#z_wasser","wasser"]].forEach(function(p){
+      var el=$(p[0]); el.value = state.zaehler[p[1]] || "";
+      el.addEventListener("input", function(){ state.zaehler[p[1]] = el.value; update(); });
+    });
+    // Typ-Segment-Initialzustand
+    Array.prototype.forEach.call(seg.children, function(c){ c.classList.toggle("on", c.getAttribute("data-typ")===state.typ); });
+  }
+
+  // ============ SCHLÜSSEL ============
+  function renderKeys(){
+    var wrap = $("#keys"); wrap.textContent="";
+    state.schluessel.forEach(function(k){
+      var row = document.createElement("div"); row.className="keyrow";
+      var nm = document.createElement("div"); nm.className="kn"; nm.textContent=k.name; row.appendChild(nm);
+      var st = document.createElement("div"); st.className="stepper";
+      var minus = document.createElement("button"); minus.type="button"; minus.textContent="–"; minus.setAttribute("aria-label","weniger");
+      var v = document.createElement("div"); v.className="v"; v.textContent=k.n;
+      var plus = document.createElement("button"); plus.type="button"; plus.textContent="+"; plus.setAttribute("aria-label","mehr");
+      minus.addEventListener("click", function(){ k.n=Math.max(0,k.n-1); v.textContent=k.n; update(); });
+      plus.addEventListener("click", function(){ k.n=Math.min(20,k.n+1); v.textContent=k.n; update(); });
+      st.appendChild(minus); st.appendChild(v); st.appendChild(plus);
+      row.appendChild(st); wrap.appendChild(row);
+    });
+  }
+
+  // ============ RÄUME ============
+  function renderQuick(){
+    var q = $("#quickrooms"); q.textContent="";
+    QUICK.forEach(function(name){
+      var b=document.createElement("button"); b.type="button"; b.textContent="+ "+name;
+      b.addEventListener("click", function(){ addRoom(name); });
+      q.appendChild(b);
+    });
+    var custom=document.createElement("button"); custom.type="button"; custom.textContent="+ Eigener Raum";
+    custom.addEventListener("click", function(){ addRoom(""); });
+    q.appendChild(custom);
+  }
+
+  function addRoom(name){
+    state.raeume.push({id:uid(), name:name, zust:"gut", maengel:[]});
+    renderRooms(); update();
+  }
+  function addMangel(room){
+    room.maengel.push({id:uid(), text:"", sev:"mittel", foto:null});
+    renderRooms(); update();
+  }
+
+  function renderRooms(){
+    var wrap = $("#rooms"); wrap.textContent="";
+    state.raeume.forEach(function(room){
+      var box = document.createElement("div"); box.className="room";
+
+      // Kopf
+      var rh = document.createElement("div"); rh.className="rh";
+      var nm = document.createElement("input"); nm.className="rname"; nm.type="text"; nm.value=room.name;
+      nm.placeholder="Raum benennen…";
+      nm.addEventListener("input", function(){ room.name=nm.value; updatePreviewOnly(); });
+      var del = document.createElement("button"); del.type="button"; del.className="del"; del.innerHTML="🗑"; del.setAttribute("aria-label","Raum löschen");
+      del.addEventListener("click", function(){
+        state.raeume = state.raeume.filter(function(r){ return r!==room; });
+        renderRooms(); update();
+      });
+      rh.appendChild(nm); rh.appendChild(del); box.appendChild(rh);
+
+      // Zustand
+      var zust = document.createElement("div"); zust.className="zust";
+      ["gut","spuren","maengel"].forEach(function(z){
+        var b=document.createElement("button"); b.type="button"; b.setAttribute("data-on",z);
+        b.textContent=ZUST[z].lbl; b.classList.toggle("on", room.zust===z);
+        b.addEventListener("click", function(){
+          room.zust=z;
+          Array.prototype.forEach.call(zust.children, function(c){ c.classList.toggle("on", c===b); });
+          updatePreviewOnly();
+        });
+        zust.appendChild(b);
+      });
+      box.appendChild(zust);
+
+      // Mängel
+      var mlist = document.createElement("div"); mlist.className="mlist";
+      room.maengel.forEach(function(m){ mlist.appendChild(mangelEl(room,m)); });
+      box.appendChild(mlist);
+
+      var add = document.createElement("button"); add.type="button"; add.className="addmangel"; add.textContent="+ Mangel erfassen";
+      add.addEventListener("click", function(){ addMangel(room); });
+      box.appendChild(add);
+
+      wrap.appendChild(box);
+    });
+  }
+
+  function mangelEl(room, m){
+    var el = document.createElement("div"); el.className="mangel";
+
+    var top = document.createElement("div"); top.className="mtop";
+    var tx = document.createElement("input"); tx.className="mtext"; tx.type="text"; tx.value=m.text;
+    tx.placeholder="z. B. Kratzer im Bodenbelag"; tx.setAttribute("list","mangel-vorschlaege");
+    tx.addEventListener("input", function(){ m.text=tx.value; updatePreviewOnly(); });
+    var mdel = document.createElement("button"); mdel.type="button"; mdel.className="mdel"; mdel.innerHTML="×"; mdel.setAttribute("aria-label","Mangel entfernen");
+    mdel.addEventListener("click", function(){
+      room.maengel = room.maengel.filter(function(x){ return x!==m; });
+      renderRooms(); update();
+    });
+    top.appendChild(tx); top.appendChild(mdel); el.appendChild(top);
+
+    var bot = document.createElement("div"); bot.className="mbot";
+    var sev = document.createElement("div"); sev.className="sev";
+    ["leicht","mittel","schwer"].forEach(function(s){
+      var b=document.createElement("button"); b.type="button"; b.setAttribute("data-s",s); b.textContent=s;
+      b.classList.toggle("on", m.sev===s);
+      b.addEventListener("click", function(){
+        m.sev=s;
+        Array.prototype.forEach.call(sev.children, function(c){ c.classList.toggle("on", c===b); });
+        updatePreviewOnly();
+      });
+      sev.appendChild(b);
+    });
+    bot.appendChild(sev);
+
+    var photo = document.createElement("div"); photo.className="photo";
+    if(m.foto){
+      photo.appendChild(thumbEl(room,m));
+    } else {
+      var lab=document.createElement("label");
+      lab.innerHTML="📷 Foto";
+      var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.capture="environment";
+      inp.addEventListener("change", function(){
+        var f=inp.files && inp.files[0]; if(!f) return;
+        var rd=new FileReader();
+        rd.onload=function(){ m.foto=rd.result; renderRooms(); update(); };
+        rd.readAsDataURL(f);
+      });
+      lab.appendChild(inp); photo.appendChild(lab);
+    }
+    bot.appendChild(photo);
+    el.appendChild(bot);
+    return el;
+  }
+
+  function thumbEl(room,m){
+    var t=document.createElement("div"); t.className="thumb";
+    var img=document.createElement("img"); img.src=m.foto; img.alt="Mangel-Foto"; t.appendChild(img);
+    var rm=document.createElement("button"); rm.type="button"; rm.className="rm"; rm.innerHTML="×"; rm.setAttribute("aria-label","Foto entfernen");
+    rm.addEventListener("click", function(){ m.foto=null; renderRooms(); update(); });
+    t.appendChild(rm);
+    return t;
+  }
+
+  // ============ VORSCHAU / PAPIER ============
+  function stats(){
+    var rooms=state.raeume.length, maengel=0, fotos=0, fehlend=0, keys=0;
+    state.raeume.forEach(function(r){ r.maengel.forEach(function(m){
+      if(m.text.trim()) maengel++; if(m.foto) fotos++;
+    }); });
+    state.schluessel.forEach(function(k){ keys+=k.n; });
+    return {rooms:rooms, maengel:maengel, fotos:fotos, keys:keys};
+  }
+
+  function renderPaper(){
+    var p=$("#paper"); p.textContent="";
+    var typLbl = state.typ==="auszug" ? "Auszug" : "Einzug";
+
+    var head=document.createElement("div"); head.className="ph";
+    var t=document.createElement("div"); t.className="t"; t.textContent="Wohnungsübergabe-Protokoll";
+    var badge=document.createElement("div"); badge.className="badge"; badge.textContent=typLbl;
+    head.appendChild(t); head.appendChild(badge); p.appendChild(head);
+
+    var dl=document.createElement("dl"); dl.className="grid2";
+    function kv(k,v){ var dt=document.createElement("dt"); dt.textContent=k; var dd=document.createElement("dd"); dd.textContent=v||"—"; dl.appendChild(dt); dl.appendChild(dd); }
+    kv("Objekt", state.adresse);
+    kv("Datum", fmtDate(state.datum));
+    kv("Mieter", state.mieter);
+    kv("Vermieter", state.vermieter);
+    p.appendChild(dl);
+
+    // Zähler
+    var zh=document.createElement("h5"); zh.textContent="Zählerstände"; p.appendChild(zh);
+    var z=state.zaehler;
+    if(z.strom||z.gas||z.wasser){
+      [["Strom",z.strom,"kWh"],["Gas",z.gas,"m³"],["Wasser",z.wasser,"m³"]].forEach(function(r){
+        if(!r[1]) return;
+        var kvr=document.createElement("div"); kvr.className="kv";
+        var a=document.createElement("span"); a.textContent=r[0];
+        var b=document.createElement("span"); b.textContent=r[1]+" "+r[2];
+        kvr.appendChild(a); kvr.appendChild(b); p.appendChild(kvr);
+      });
+    } else { var n0=document.createElement("div"); n0.className="none"; n0.textContent="Noch keine Zählerstände erfasst."; p.appendChild(n0); }
+
+    // Schlüssel
+    var kh=document.createElement("h5"); kh.textContent="Übergebene Schlüssel"; p.appendChild(kh);
+    state.schluessel.forEach(function(k){
+      var kvr=document.createElement("div"); kvr.className="kv";
+      var a=document.createElement("span"); a.textContent=k.name;
+      var b=document.createElement("span"); b.textContent=k.n+"×";
+      kvr.appendChild(a); kvr.appendChild(b); p.appendChild(kvr);
+    });
+
+    // Räume
+    var rh=document.createElement("h5"); rh.textContent="Räume & Zustand"; p.appendChild(rh);
+    if(!state.raeume.length){
+      var nr=document.createElement("div"); nr.className="none"; nr.textContent="Noch keine Räume erfasst."; p.appendChild(nr);
+    }
+    state.raeume.forEach(function(r){
+      var pr=document.createElement("div"); pr.className="proom";
+      var pn=document.createElement("div"); pn.className="pn";
+      var nm=document.createElement("span"); nm.textContent=r.name||"(unbenannter Raum)";
+      var zt=document.createElement("span"); zt.className="ztag "+r.zust; zt.textContent=ZUST[r.zust].lbl;
+      pn.appendChild(nm); pn.appendChild(zt); pr.appendChild(pn);
+
+      var withText = r.maengel.filter(function(m){ return m.text.trim(); });
+      withText.forEach(function(m){
+        var pm=document.createElement("div"); pm.className="pm";
+        var s=document.createElement("span"); s.className="s "+m.sev; s.textContent=m.sev;
+        var tx=document.createElement("span"); tx.textContent=m.text;
+        pm.appendChild(s); pm.appendChild(tx); pr.appendChild(pm);
+      });
+      var fotos = r.maengel.filter(function(m){ return m.foto; });
+      if(fotos.length){
+        var pt=document.createElement("div"); pt.className="pthumbs";
+        fotos.forEach(function(m){ var im=document.createElement("img"); im.src=m.foto; im.alt=""; pt.appendChild(im); });
+        pr.appendChild(pt);
+      }
+      if(!withText.length && r.zust!=="maengel"){
+        var ok=document.createElement("div"); ok.className="pf"; ok.style.color="#176b4a"; ok.style.fontSize=".76rem";
+        ok.textContent="✓ ohne besondere Mängel"; pr.appendChild(ok);
+      }
+      p.appendChild(pr);
+    });
+
+    // Unterschriften
+    var sign=document.createElement("div"); sign.className="sign";
+    var s1=document.createElement("div"); s1.textContent="Unterschrift Mieter";
+    var s2=document.createElement("div"); s2.textContent="Unterschrift Vermieter";
+    sign.appendChild(s1); sign.appendChild(s2); p.appendChild(sign);
+
+    var pf=document.createElement("div"); pf.className="pfoot";
+    pf.textContent="Erstellt mit ÜbergabeKlar · "+fmtDate(state.datum);
+    p.appendChild(pf);
+  }
+
+  // ============ FORTSCHRITT + DOCK ============
+  function updateMeta(){
+    var st=stats();
+    // 4 Schritte: Eckdaten / Zähler / Schlüssel(immer da) / mind. 1 Raum mit Inhalt
+    var done=0;
+    if(state.adresse.trim() && state.mieter.trim() && state.vermieter.trim()) done++;
+    if(state.zaehler.strom || state.zaehler.gas || state.zaehler.wasser) done++;
+    if(st.keys>0) done++;
+    if(st.rooms>0) done++;
+    var bars=$("#steps").children;
+    for(var i=0;i<bars.length;i++){ bars[i].firstChild.style.width = (i<done? "100%":"0"); }
+    var lbl=$("#progresslbl");
+    if(done>=4) lbl.innerHTML="<b>Bereit zum Sichern</b> · alle Schritte ausgefüllt";
+    else lbl.textContent="Schritt "+done+" von 4 ausgefüllt";
+
+    $("#d_rooms").textContent=st.rooms;
+    $("#d_maengel").textContent=st.maengel;
+    $("#d_fotos").textContent=st.fotos;
+  }
+
+  function updatePreviewOnly(){ renderPaper(); updateMeta(); save(); }
+  function update(){ renderKeys(); renderPaper(); updateMeta(); save(); }
+
+  // ============ WARTELISTE (FormSubmit.co) ============
+  var note=$("#note");
+  function flash(t,err){ note.textContent=t; note.style.color=err?"#e87073":""; }
+  var cap=$("#capture"), buy=$("#buy");
+  var LEADKEY="uebergabeklar.lead", AJAX="https://formsubmit.co/ajax/kevinfritsch5@gmail.com";
+  try{ if(localStorage.getItem(LEADKEY)) flash("Du bist schon auf der Warteliste ✓"); }catch(e){}
+  cap.addEventListener("submit", function(e){
+    e.preventDefault();
+    var email=$("#email").value.trim();
+    if(email.indexOf("@")<1){ flash("Bitte eine gültige E-Mail eingeben.",true); return; }
+    var btn=cap.querySelector("button[type=submit]"), orig=btn.textContent;
+    btn.disabled=true; btn.textContent="Moment…";
+    fetch(AJAX,{method:"POST",headers:{"Accept":"application/json"},body:new FormData(cap)})
+      .then(function(r){ return r.json().catch(function(){return{};}); })
+      .then(function(res){
+        try{ localStorage.setItem(LEADKEY,email); }catch(x){}
+        if(res && (res.success==="true"||res.success===true)){
+          cap.reset(); btn.textContent="Eingetragen ✓";
+          flash("Top! Du bekommst gleich eine Bestätigungsmail und hörst von uns, sobald der Export live geht.");
+        } else {
+          btn.disabled=false; btn.textContent=orig;
+          flash("Deine Mail ist notiert — die Warteliste wird gerade freigeschaltet.");
+        }
+      })
+      .catch(function(){
+        try{ localStorage.setItem(LEADKEY,email); }catch(x){}
+        btn.disabled=false; btn.textContent=orig;
+        flash("Notiert! Wird übermittelt, sobald die Seite online ist.");
+      });
+  });
+  buy.addEventListener("click", function(e){
+    if((buy.getAttribute("href")||"").indexOf("{{")!==-1){ e.preventDefault();
+      flash("PDF-Export wird gerade eingerichtet — trag dich solange auf die Warteliste ein, du bekommst den Link zuerst.");
+      $("#email").focus();
+    }
+  });
+  $("#dockgo").addEventListener("click", function(){
+    buy.scrollIntoView({behavior:"smooth", block:"center"});
+    flash("Fast fertig — sichere dein Protokoll als PDF.");
+  });
+
+  // ============ INIT ============
+  load();
+  bindStatic();
+  renderQuick();
+  renderKeys();
+  renderRooms();
+  renderPaper();
+  updateMeta();
+  $("#yr").textContent=(new Date()).getFullYear();
+})();
+</script>
+</body>
+</html>

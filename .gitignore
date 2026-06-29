@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ALLOWLIST-Prinzip: standardmäßig wird ALLES ignoriert. Nur die Dateien, die
+# wirklich öffentlich auf GitHub Pages sollen, werden unten wieder freigegeben.
+# So kann NICHTS Internes versehentlich gepusht werden (Pläne, Analysen,
+# aussortierte Ideen, open-design, Backups, Aufgabenlisten …).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 1) Alles auf oberster Ebene ignorieren
+/*
+
+# 2) Nur die Publish-Werkzeuge + neutrale öffentliche README wieder zulassen
+!/.gitignore
+!/.github/
+!/README.md
+
+# 3) In den Ordner Projects/ hineinsteigen, aber dort wieder ALLES ignorieren …
+!/Projects/
+/Projects/*
+
+# 4) … außer den freigegebenen Demos in _GUT
+!/Projects/_GUT/
+
+# 5) Innerhalb von _GUT: NUR die Web-Seiten, NIEMALS die internen Pläne
+/Projects/_GUT/**/plan.md
+plan.md
+
+# Sicherheitsnetz (würde sowieso schon von /* erfasst, hier explizit):
+PORTFOLIO-ANALYSE.md
+B2B-IDEEN-PLAYBOOK.md
+SETUP-GITHUB.md
+mvp-lab.zip
+tasks.csv
+tasks.ics
+open-design/
+Projects/_SCHLECHT/
+Projects/README.md
+Projects/BACKLOG.md
+
+# OS / Editor
+.DS_Store
+Thumbs.db

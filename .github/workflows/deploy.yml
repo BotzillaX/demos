@@ -1,0 +1,51 @@
+name: Deploy Demos → GitHub Pages
+
+# Publisht den Ordner Projects/_GUT als Website. Bei jedem Push auf main wird
+# die Übersichtsseite automatisch neu aus den vorhandenen Demos generiert und
+# alles live gestellt. Neue Demo = Ordner mit index.html in Projects/_GUT ablegen,
+# committen, pushen — sie erscheint automatisch.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein Deploy gleichzeitig
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Übersichtsseite aus den Demos generieren
+        run: node .github/scripts/build-index.mjs
+
+      - uses: actions/configure-pages@v5
+
+      - name: Demo-Ordner als Pages-Artefakt hochladen
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: Projects/_GUT
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
