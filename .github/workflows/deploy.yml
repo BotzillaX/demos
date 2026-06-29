@@ -33,6 +33,9 @@ jobs:
       - name: Übersichtsseite aus den Demos generieren
         run: node .github/scripts/build-index.mjs
 
+      - name: Rechtsseiten (Impressum/Datenschutz) ins Publish-Verzeichnis kopieren
+        run: mkdir -p Projects/_GUT/legal && cp legal/*.html Projects/_GUT/legal/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true

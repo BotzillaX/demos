@@ -12,6 +12,7 @@
 !/.gitignore
 !/.github/
 !/README.md
+!/legal/
 
 # 3) In den Ordner Projects/ hineinsteigen, aber dort wieder ALLES ignorieren …
 !/Projects/
