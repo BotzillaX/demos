@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WartungsWecker — Fällige Wartung vergessen? Nie wieder verlorene Folgeaufträge.</title>
+<meta name="description" content="Hält automatisch nach, wann bei welchem Kunden die nächste Wartung oder Prüfung fällig ist, und erinnert im richtigen Moment. Jede zurückgeholte Wartung bleibt Umsatz statt verlorener Kunde.">
+<style>
+  /* ── Design system: design-systems/supabase · tokens.css (:root 1:1 übernommen) ── */
+  :root{
+    --bg:#171717; --surface:#1c1c1c; --surface-warm:#1c1c1c;
+    --fg:#fafafa; --fg-2:#b4b4b4; --muted:#898989; --meta:#4d4d4d;
+    --border:#2e2e2e; --border-soft:#242424;
+    --accent:#3ecf8e; --accent-on:#0f0f0f; --accent-hover:#00c573;
+    --accent-active:color-mix(in oklab, var(--accent), black 14%);
+    --success:#16a34a; --warn:#eab308; --danger:#dc2626;
+    --font-display:"Circular","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --font-body:"Circular","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --font-mono:"Source Code Pro","Office Code Pro",Menlo,Monaco,Consolas,monospace;
+    --text-xs:12px; --text-sm:14px; --text-base:16px; --text-lg:18px; --text-xl:24px;
+    --text-2xl:32px; --text-3xl:36px; --text-4xl:72px;
+    --leading-body:1.5; --leading-tight:1.0; --tracking-display:normal;
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px;
+    --space-6:24px; --space-8:32px; --space-12:48px;
+    --section-y-desktop:128px; --section-y-tablet:80px; --section-y-phone:48px;
+    --radius-sm:6px; --radius-md:8px; --radius-lg:16px; --radius-pill:9999px;
+    --elev-flat:none; --elev-ring:0 0 0 1px var(--border);
+    --elev-raised:0 0 0 1px var(--border), 0 4px 12px rgba(0,0,0,0.4);
+    --focus-ring:0 0 0 2px color-mix(in oklab, var(--accent), transparent 50%);
+    --motion-fast:150ms; --motion-base:200ms; --ease-standard:cubic-bezier(0.2,0,0,1);
+    --container-max:1200px; --container-gutter-desktop:24px; --container-gutter-tablet:16px; --container-gutter-phone:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);
+    font:var(--text-base)/var(--leading-body) var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background-image:radial-gradient(110% 70% at 78% -6%, rgba(62,207,142,0.07) 0%, transparent 52%);background-attachment:fixed}
+  .wrap{max-width:var(--container-max);margin:0 auto;
+    padding-inline:clamp(var(--container-gutter-phone),4vw,var(--container-gutter-desktop))}
+  .narrow{max-width:960px}
+  h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:600;letter-spacing:var(--tracking-display)}
+  h1{font-size:clamp(36px,7vw,var(--text-4xl));line-height:var(--leading-tight);letter-spacing:-0.01em}
+  h2{font-size:clamp(var(--text-2xl),4.5vw,var(--text-3xl));line-height:1.08;letter-spacing:-0.01em}
+  h3{font-size:var(--text-xl);line-height:1.2}
+  p{margin:0}
+  a{color:var(--accent);text-decoration:none}
+  :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+  .mono-label{font:600 var(--text-xs)/1 var(--font-mono);text-transform:uppercase;letter-spacing:0.12em;color:var(--muted)}
+  .eyebrow{font:600 var(--text-sm)/1 var(--font-mono);text-transform:uppercase;letter-spacing:0.12em;color:var(--accent)}
+  .pill{font-family:var(--font-body);font-size:var(--text-base);font-weight:600;cursor:pointer;border:0;
+    border-radius:var(--radius-pill);padding:12px 22px;letter-spacing:0.01em;
+    transition:background var(--motion-fast) var(--ease-standard),transform var(--motion-fast),box-shadow var(--motion-fast)}
+  .pill:active{transform:scale(.98)}
+  .pill-primary{background:var(--accent);color:var(--accent-on)}
+  .pill-primary:hover{background:var(--accent-hover)}
+  .pill-ghost{background:transparent;color:var(--fg);box-shadow:inset 0 0 0 1px var(--border)}
+  .pill-ghost:hover{background:var(--surface)}
+
+  /* ── Header ── */
+  header{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--bg),transparent 16%);
+    backdrop-filter:saturate(1.2) blur(14px);-webkit-backdrop-filter:saturate(1.2) blur(14px);border-bottom:1px solid var(--border-soft)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:58px;
+    max-width:var(--container-max);margin:0 auto;
+    padding-inline:clamp(var(--container-gutter-phone),4vw,var(--container-gutter-desktop))}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:var(--text-lg);letter-spacing:-0.01em}
+  .logo svg{display:block;width:23px;height:23px;stroke:var(--accent);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .nav .meta{font:600 var(--text-sm)/1 var(--font-mono);color:var(--muted)}
+  @media (max-width:560px){.nav .meta{display:none}}
+
+  /* ── Hero ── */
+  .hero{text-align:center;padding-top:clamp(40px,6vw,72px);padding-bottom:clamp(8px,2vw,16px)}
+  .hero h1{margin-top:var(--space-5);max-width:22ch;margin-inline:auto}
+  .hero h1 em{font-style:normal;color:var(--accent)}
+  .hero p.sub{max-width:56ch;margin:var(--space-5) auto 0;color:var(--fg-2);font-size:var(--text-lg)}
+
+  /* ── Picker ── */
+  .picker{max-width:760px;margin:var(--space-8) auto 0;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-lg);padding:clamp(16px,3vw,24px);text-align:start}
+  .pk-fields{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+  @media (max-width:560px){.pk-fields{grid-template-columns:1fr}}
+  .pk-field label{display:block;margin-bottom:8px}
+  .pk-field input,.pk-field select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);
+    border-radius:var(--radius-md);padding:12px 13px;font:var(--text-base) var(--font-body)}
+  .pk-field select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23898989' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px}
+  .pk-field input:focus-visible,.pk-field select:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--focus-ring)}
+
+  /* ── Stage: Phone + Betriebs-Panel ── */
+  .stagewrap{padding-top:var(--space-12)}
+  .stage{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:clamp(20px,4vw,40px);align-items:start}
+  @media (max-width:860px){.stage{grid-template-columns:1fr;max-width:420px;margin-inline:auto}}
+
+  .phone{background:#0c0c0c;border:1px solid var(--border);border-radius:34px;padding:9px;box-shadow:var(--elev-raised)}
+  .screen{background:var(--bg);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;height:540px}
+  .chat-h{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border-soft);background:var(--surface)}
+  .chat-h .ava{width:34px;height:34px;border-radius:var(--radius-pill);background:#11271c;display:grid;place-items:center;flex:none}
+  .chat-h .ava svg{width:18px;height:18px;stroke:var(--accent);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .chat-h .who{font-weight:600;font-size:var(--text-sm)}
+  .chat-h .stat{font:600 var(--text-xs)/1.3 var(--font-mono);color:var(--accent);display:flex;align-items:center;gap:5px}
+  .chat-h .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .thread{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px;scroll-behavior:smooth}
+  .msg{max-width:84%;padding:9px 12px;font-size:var(--text-sm);line-height:1.42;border-radius:15px;animation:pop .22s var(--ease-standard) both}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+  .msg.in{align-self:flex-start;background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:5px;color:var(--fg)}
+  .msg.out{align-self:flex-end;background:rgba(62,207,142,0.12);border:1px solid rgba(62,207,142,0.26);border-bottom-right-radius:5px;color:var(--fg)}
+  .msg .from{display:block;font:600 11px/1 var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+  .chip{font:600 var(--text-sm) var(--font-body);padding:7px 12px;border-radius:var(--radius-pill);
+    border:1px solid var(--border);background:var(--bg);color:var(--fg-2);cursor:pointer;transition:border-color var(--motion-fast),color var(--motion-fast),background var(--motion-fast)}
+  .chip:hover:not([disabled]){border-color:var(--accent);color:var(--fg)}
+  .chip[disabled]{cursor:default;opacity:.45}
+  .chip.tapped{background:var(--accent);color:var(--accent-on);border-color:var(--accent);opacity:1}
+  .chat-f{display:flex;align-items:center;gap:9px;padding:10px 13px;border-top:1px solid var(--border-soft);background:var(--surface)}
+  .chat-f .fake{flex:1;height:34px;border-radius:var(--radius-pill);background:var(--bg);border:1px solid var(--border);
+    display:flex;align-items:center;padding:0 14px;color:var(--meta);font-size:var(--text-sm)}
+  .chat-f .send{width:34px;height:34px;border-radius:50%;background:var(--accent);display:grid;place-items:center;flex:none}
+  .chat-f .send svg{width:16px;height:16px;stroke:var(--accent-on);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:clamp(18px,3vw,26px)}
+  .panel .ptop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:var(--space-5)}
+  .panel .ptop .day{font:600 var(--text-xs)/1 var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.1em}
+  .slotcard{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;transition:border-color var(--motion-base),background var(--motion-base)}
+  .slotcard + .slotcard{margin-top:12px}
+  .slotcard .si{min-width:0}
+  .slotcard .when{font:600 var(--text-lg)/1.15 var(--font-display)}
+  .slotcard .what{font-size:var(--text-sm);color:var(--fg-2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge{flex:none;font:600 var(--text-xs)/1 var(--font-mono);text-transform:uppercase;letter-spacing:0.07em;
+    padding:6px 10px;border-radius:var(--radius-pill);border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+  .badge.warn{color:var(--warn);border-color:color-mix(in oklab,var(--warn),transparent 55%);background:color-mix(in oklab,var(--warn),transparent 90%)}
+  .badge.ok{color:var(--accent);border-color:color-mix(in oklab,var(--accent),transparent 50%);background:color-mix(in oklab,var(--accent),transparent 88%)}
+  .slotcard.wobble{border-color:color-mix(in oklab,var(--warn),transparent 55%)}
+  .slotcard.saved{border-color:color-mix(in oklab,var(--accent),transparent 50%);background:color-mix(in oklab,var(--accent),transparent 92%)}
+  .refill{margin-top:12px;overflow:hidden;max-height:0;opacity:0;transition:max-height var(--motion-base) var(--ease-standard),opacity var(--motion-base)}
+  .refill.show{max-height:120px;opacity:1}
+  .tally{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--border-soft)}
+  .tally .lbl{font:600 var(--text-xs)/1 var(--font-mono);text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)}
+  .tally .amt{font-family:var(--font-display);font-weight:600;font-size:var(--text-2xl);color:var(--accent);font-variant-numeric:tabular-nums}
+  .tally .amt.idle{color:var(--meta)}
+
+  .stage-ctl{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;margin-top:var(--space-6);justify-content:center}
+  .replay{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--fg);
+    border-radius:var(--radius-pill);padding:9px 16px;font:600 var(--text-sm) var(--font-body);cursor:pointer}
+  .replay:hover{border-color:var(--muted)}
+  .replay svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .stage-hint{font-size:var(--text-sm);color:var(--muted)}
+
+  /* ── Sektionen ── */
+  section{padding-block:clamp(var(--section-y-phone),8vw,var(--section-y-desktop))}
+  .sec-head{text-align:center;margin-bottom:var(--space-12)}
+  .sec-head .eyebrow{display:block;margin-bottom:var(--space-4)}
+  .vals{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-6)}
+  @media (max-width:820px){.vals{grid-template-columns:1fr}}
+  .vcard{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:var(--space-8)}
+  .vcard .ic{width:40px;height:40px;border-radius:var(--radius-md);background:#11271c;display:grid;place-items:center}
+  .vcard .ic svg{width:21px;height:21px;stroke:var(--accent);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .vcard h3{margin-top:var(--space-5)}
+  .vcard p{margin-top:var(--space-3);color:var(--fg-2)}
+  .vcard .step{font:600 var(--text-xs)/1 var(--font-mono);color:var(--muted);letter-spacing:0.08em}
+
+  /* ── Rechner ── */
+  .calc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+    display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden}
+  @media (max-width:720px){.calc{grid-template-columns:1fr}}
+  .calc .in{padding:clamp(22px,4vw,40px);border-right:1px solid var(--border-soft)}
+  @media (max-width:720px){.calc .in{border-right:0;border-bottom:1px solid var(--border-soft)}}
+  .calc .out{padding:clamp(22px,4vw,40px);display:flex;flex-direction:column;justify-content:center}
+  .cfield{margin-top:var(--space-5)}
+  .cfield:first-child{margin-top:0}
+  .cfield label{display:block;margin-bottom:8px}
+  .cfield .row{display:flex;align-items:center;gap:10px}
+  .cfield input{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:12px 13px;font:600 var(--text-lg) var(--font-mono)}
+  .cfield input:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--focus-ring)}
+  .cfield .unit{font:600 var(--text-sm) var(--font-mono);color:var(--muted);white-space:nowrap}
+  .out .lossnum{font-family:var(--font-display);font-weight:600;font-size:clamp(40px,8vw,64px);line-height:1;color:var(--warn);font-variant-numeric:tabular-nums}
+  .out .losslbl{margin-top:var(--space-3);color:var(--fg-2)}
+  .out .break{margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--border-soft);color:var(--fg-2);font-size:var(--text-sm)}
+  .out .break b{color:var(--fg)}
+
+  /* ── Preise / Warteliste ── */
+  .unlock{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:clamp(28px,5vw,60px);text-align:center}
+  .unlock .eyebrow{display:inline-block}
+  .unlock h2{margin-top:var(--space-3)}
+  .unlock p.sub{max-width:52ch;margin:var(--space-4) auto 0;color:var(--fg-2);font-size:var(--text-lg)}
+  .unlock .price{margin-top:var(--space-6);font-family:var(--font-display);font-weight:600;font-size:var(--text-2xl)}
+  .unlock .price small{font:600 var(--text-base) var(--font-mono);color:var(--muted)}
+  .unlock .actions{display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-6);flex-wrap:wrap}
+  .capture{display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-5);flex-wrap:wrap}
+  .capture input{background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-pill);
+    padding:12px 20px;min-width:260px;font:var(--text-base) var(--font-body)}
+  .capture input:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--focus-ring)}
+  .note{min-height:1.3em;margin-top:var(--space-4);font-size:var(--text-sm);color:var(--accent)}
+  .demoflag{color:var(--muted);font-size:var(--text-sm);text-align:center;max-width:72ch;margin:var(--space-8) auto 0;line-height:1.55}
+
+  footer{border-top:1px solid var(--border-soft)}
+  footer .wrap{display:flex;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap;color:var(--muted);font-size:var(--text-sm);padding-block:var(--space-12)}
+  footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <span class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z"/><path d="M10.5 21a2 2 0 0 0 3 0"/></svg>
+      WartungsWecker
+    </span>
+    <span class="meta">Keine fällige Wartung mehr vergessen</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- HERO + PICKER -->
+  <section class="hero wrap" style="padding-bottom:0">
+    <span class="eyebrow">Für Heizung · KFZ · Kälte/Klima · Elektro · Brandschutz</span>
+    <h1>Vergessene Wartung = verlorener Kunde. <em>WartungsWecker holt beide zurück — automatisch.</em></h1>
+    <p class="sub">Er hält nach, wann bei welchem Bestandskunden die nächste Wartung oder Prüfung fällig ist, und erinnert im richtigen Moment. Wähl dein Gewerk und sieh, wie aus einer fälligen Wartung ein gebuchter Termin wird.</p>
+    <div class="picker">
+      <div class="pk-fields">
+        <div class="pk-field">
+          <label class="mono-label" for="gewerk">Dein Gewerk</label>
+          <select id="gewerk"></select>
+        </div>
+        <div class="pk-field">
+          <label class="mono-label" for="betrieb">Name deines Betriebs</label>
+          <input id="betrieb" type="text" maxlength="30" placeholder="z. B. Heizbau Vogt" autocomplete="off" autocapitalize="words" spellcheck="false">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE: Phone + Betriebs-Panel (fertiges Ergebnis, live) -->
+  <section class="wrap narrow stagewrap">
+    <div class="stage">
+      <!-- Telefon -->
+      <div class="phone" aria-label="Vorschau der Kunden-Erinnerung">
+        <div class="screen">
+          <div class="chat-h">
+            <span class="ava" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z"/><path d="M10.5 21a2 2 0 0 0 3 0"/></svg></span>
+            <div style="flex:1;min-width:0">
+              <div class="who" id="chatWho">Dein Betrieb</div>
+              <div class="stat"><span class="dot"></span> WartungsWecker aktiv</div>
+            </div>
+          </div>
+          <div class="thread" id="thread" aria-live="polite"></div>
+          <div class="chat-f" aria-hidden="true">
+            <span class="fake">Nachricht schreiben…</span>
+            <span class="send"><svg viewBox="0 0 24 24"><path d="M4 12l16-7-7 16-2-7z"/></svg></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fällige Wartungen -->
+      <div class="panel" aria-label="Deine fälligen Wartungen">
+        <div class="ptop">
+          <h3>Fällige Wartungen</h3>
+          <span class="day">Diesen Monat</span>
+        </div>
+        <div class="slotcard" id="slotMain">
+          <div class="si">
+            <div class="when" id="slotWho">Familie Brandt</div>
+            <div class="what" id="slotWhat">Heizungswartung · letzte vor 13 Monaten</div>
+          </div>
+          <span class="badge warn" id="slotBadge">fällig</span>
+        </div>
+        <div class="refill" id="refill">
+          <div class="slotcard saved">
+            <div class="si">
+              <div class="when" id="refillWho">Herr Vogt</div>
+              <div class="what">Auto-Erinnerung raus</div>
+            </div>
+            <span class="badge ok">läuft</span>
+          </div>
+        </div>
+        <div class="tally">
+          <span class="lbl">Reaktivierter Umsatz</span>
+          <span class="amt idle" id="tally">+0 €</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage-ctl">
+      <button class="replay" id="replay" type="button"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg> Nochmal abspielen</button>
+      <span class="stage-hint">Tipp: tippe im Chat selbst auf einen Termin.</span>
+    </div>
+  </section>
+
+  <!-- WIE ES RETTET -->
+  <section class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">So bleibt kein Kunde liegen</span>
+      <h2>Drei Schritte, kein verlorener Folgeauftrag</h2>
+    </div>
+    <div class="vals">
+      <div class="vcard">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+        <span class="step" style="margin-top:18px;display:block">Schritt 1</span>
+        <h3>Kundenliste rein, kein neues System</h3>
+        <p>Du lädst deine bestehende Kundenliste hoch (CSV/Excel) oder ziehst sie aus deiner Software. WartungsWecker merkt sich, wann bei wem die nächste Wartung fällig ist — keine fremde Integration nötig.</p>
+      </div>
+      <div class="vcard">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z"/><path d="M10.5 21a2 2 0 0 0 3 0"/></svg></div>
+        <span class="step" style="margin-top:18px;display:block">Schritt 2</span>
+        <h3>Erinnerung im richtigen Moment</h3>
+        <p>Sobald eine Wartung oder Prüfung fällig wird, geht automatisch eine freundliche Erinnerung per SMS oder E-Mail raus — mit Terminvorschlag. Der Kunde muss nur noch zusagen.</p>
+      </div>
+      <div class="vcard">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M22 11.5V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4 12 14.2l-3-3"/></svg></div>
+        <span class="step" style="margin-top:18px;display:block">Schritt 3</span>
+        <h3>Termin gebucht, Umsatz zurück</h3>
+        <p>Der Kunde bucht, der Folgeauftrag bleibt bei dir statt bei der Konkurrenz. Und weil Wartung jedes Jahr wiederkommt, ist jeder gehaltene Kunde mehrfacher Umsatz.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECHNER -->
+  <section class="wrap narrow">
+    <div class="sec-head">
+      <span class="eyebrow">Deine Rechnung</span>
+      <h2>Was kostet dich eine vergessene Wartung?</h2>
+    </div>
+    <div class="calc">
+      <div class="in">
+        <div class="cfield">
+          <label class="mono-label" for="cVal">Wert eines Wartungs-/Folgeauftrags</label>
+          <div class="row"><input id="cVal" type="number" min="0" step="10" value="180" inputmode="numeric"><span class="unit">€</span></div>
+        </div>
+        <div class="cfield">
+          <label class="mono-label" for="cNo">Fällige Kunden, die durchrutschen</label>
+          <div class="row"><input id="cNo" type="number" min="0" max="200" step="1" value="6" inputmode="numeric"><span class="unit">/ Monat</span></div>
+        </div>
+        <p class="stage-hint" style="margin-top:20px">Deine eigenen Zahlen — nichts davon ist eine versprochene Quote.</p>
+      </div>
+      <div class="out">
+        <span class="mono-label">Verlust pro Monat</span>
+        <div class="lossnum" id="lossNum">1.080 €</div>
+        <p class="losslbl">an Folgeaufträgen gehen dir aktuell durch nicht nachgehaltene Wartungen durch.</p>
+        <p class="break">Schon <b>eine zurückgeholte Wartung pro Woche</b> bringt dir rund <b id="breakNum">774 €</b> im Monat zurück. WartungsWecker kostet ab <b>29 €/Monat</b>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREISE / WARTELISTE -->
+  <section class="wrap" id="preise">
+    <div class="unlock">
+      <span class="eyebrow">Early Access</span>
+      <h2>Hol dir WartungsWecker für <span id="unlockName">deinen Betrieb</span></h2>
+      <p class="sub">Bei Start: deine Kundenliste rein, automatische Fälligkeits-Erinnerungen per SMS/E-Mail und ein Überblick, welche Bestandskunden gerade fällig sind. Trag dich ein, sicher dir den Einführungspreis und sei zuerst dran.</p>
+      <div class="price">ab 29 € / Monat <small>· unbegrenzt Kunden</small></div>
+      <div class="actions">
+        <a class="pill pill-primary" id="buy" href="{{PAYMENT_LINK}}">Zugang sichern</a>
+      </div>
+      <form class="capture" id="capture" action="https://script.google.com/macros/s/AKfycbzXwTCXDM5FejEF8VqoEVb-y1eAl4SttYu3gyK-_Zn9b0eLgSJn58gFGW5iDJ_ufe8t9w/exec" method="POST">
+        <input type="hidden" name="projekt" value="wartungswecker">
+        <input type="hidden" name="gewerk" id="varField" value="">
+        <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+        <input id="email" name="email" type="email" placeholder="Deine E-Mail – Start &amp; Einführungspreis" required>
+        <button class="pill pill-primary" type="submit">Auf die Warteliste</button>
+      </form>
+      <p style="font-size:.8rem;color:var(--muted);line-height:1.45;margin:.5rem 0 0">Mit dem Eintragen speicherst du deine E-Mail bei uns, damit wir dich zum Start benachrichtigen. Keine Weitergabe an Dritte, jederzeit widerrufbar. Mehr in der <a href="../legal/datenschutz.html" style="color:var(--accent)">Datenschutzerklärung</a>.</p>
+      <p class="note" id="note"></p>
+    </div>
+    <p class="demoflag">Das hier ist eine Demo mit festen, handgeschriebenen Beispiel-Abläufen pro Gewerk — noch ohne echten SMS/E-Mail-Versand, ohne Anbindung an eine echte Kundenliste und ohne Zahlungen. Der Effekt ist real, aber kein Tool holt jeden Kunden zurück. Die Verlust-Rechnung benutzt deine eigenen Zahlen. Dein Betriebsname bleibt auf deinem Gerät.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WartungsWecker · Early Access · © <span id="yr">2026</span></span>
+    <a href="../index.html">← Alle Demos</a>
+    <a href="../legal/impressum.html">Impressum</a>
+    <a href="../legal/datenschutz.html">Datenschutz</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s){return document.querySelector(s);};
+  var KEYG="wartungswecker.gewerk", KEYB="wartungswecker.betrieb";
+  var reduced=false; try{ reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+
+  // Pro Gewerk eine komplette, handgeschriebene Rettung. {S}=Betriebsname, {T}=gewählter Termin.
+  var DATA=[
+    { id:"shk", label:"Heizung / SHK", leistung:"Heizungswartung", kunde:"Familie Brandt", naechster:"Herr Vogt", faellig:"13 Monaten", wert:180,
+      slots:["Di 09:00","Do 14:00","Fr 10:30"],
+      m1:"Hallo Familie Brandt, Ihre jährliche Heizungswartung bei {S} ist fällig — die letzte war vor 13 Monaten. Sollen wir gleich einen Termin einplanen?",
+      m2:"Oh stimmt, ganz vergessen. Ja, machen wir!",
+      m3:"Super! Diese Termine hätten wir frei:",
+      m4:"Top, wir haben Sie für {T} eingetragen. Dann läuft Ihre Heizung wieder sparsam und sicher." },
+    { id:"kfz", label:"KFZ-Werkstatt", leistung:"Inspektion & HU-Termin", kunde:"Herr Demir", naechster:"Frau Klein", faellig:"12 Monaten", wert:320,
+      slots:["Mo 08:00","Mi 11:30","Fr 15:00"],
+      m1:"Hallo Herr Demir, bei {S} steht Ihre Inspektion an und Ihre HU läuft bald ab — der letzte Service war vor 12 Monaten. Sollen wir einen Termin reservieren?",
+      m2:"Ach ja, danke für die Erinnerung! Ja, bitte einplanen.",
+      m3:"Gerne! Diese Termine sind frei:",
+      m4:"Erledigt — Ihr Wagen ist für {T} eingebucht. So rutscht die HU nicht durch und nichts bleibt liegen." },
+    { id:"klima", label:"Kälte / Klima", leistung:"Klimaanlagen-Wartung", kunde:"Büro Lindner", naechster:"Praxis Sun", faellig:"14 Monaten", wert:150,
+      slots:["Di 10:00","Mi 13:00","Do 09:30"],
+      m1:"Hallo Büro Lindner, die jährliche Wartung Ihrer Klimaanlage bei {S} ist fällig (letzte vor 14 Monaten). Sollen wir vor dem Sommer einen Termin einplanen?",
+      m2:"Guter Punkt, bevor es wieder heiß wird. Ja, gern!",
+      m3:"Perfekt! Folgende Zeiten sind frei:",
+      m4:"Top, wir kommen am {T}. Dann bringt Ihre Anlage im Sommer wieder volle Leistung." },
+    { id:"elektro", label:"Elektro / E-Check", leistung:"E-Check (DGUV V3)", kunde:"Bäckerei Hofer", naechster:"Kanzlei Rein", faellig:"13 Monaten", wert:240,
+      slots:["Mo 07:30","Mi 16:00","Fr 11:00"],
+      m1:"Hallo Bäckerei Hofer, die vorgeschriebene Prüfung Ihrer elektrischen Anlagen (E-Check / DGUV V3) bei {S} ist fällig — die letzte war vor 13 Monaten. Sollen wir einen Termin einplanen?",
+      m2:"Oh, das hatte ich nicht auf dem Schirm. Ja, bitte machen.",
+      m3:"Machen wir! Diese Termine sind frei:",
+      m4:"Eingetragen für {T}. Damit sind Sie bei Versicherung und Prüfung wieder auf der sicheren Seite." },
+    { id:"brandschutz", label:"Brandschutz", leistung:"Feuerlöscher-Prüfung", kunde:"Restaurant Pino", naechster:"Hotel Adler", faellig:"24 Monaten", wert:90,
+      slots:["Di 14:30","Do 10:00","Fr 09:00"],
+      m1:"Hallo Restaurant Pino, die 2-Jahres-Prüfung Ihrer Feuerlöscher (DIN 14406) bei {S} ist fällig. Sollen wir vorbeikommen und einen Termin einplanen?",
+      m2:"Stimmt, das ist überfällig. Ja, bitte einen Termin.",
+      m3:"Gerne! Diese Zeiten sind frei:",
+      m4:"Notiert für {T}. Dann ist im Ernstfall alles geprüft und einsatzbereit." }
+  ];
+
+  var gewerkId=DATA[0].id, betrieb="";
+  try{ var a=localStorage.getItem(KEYG); if(a) gewerkId=a;
+       var b=localStorage.getItem(KEYB); if(b!==null) betrieb=b; }catch(e){}
+
+  function cur(){ for(var i=0;i<DATA.length;i++){ if(DATA[i].id===gewerkId) return DATA[i]; } return DATA[0]; }
+  function sName(){ return (betrieb||"").trim() || "uns"; }
+  function sHead(){ return (betrieb||"").trim() || "Dein Betrieb"; }
+
+  // Dropdown + Eingabe
+  var gsel=$("#gewerk");
+  DATA.forEach(function(d){ var o=document.createElement("option"); o.value=d.id; o.textContent=d.label; gsel.appendChild(o); });
+  gsel.value=gewerkId;
+  var bin=$("#betrieb"); bin.value=betrieb;
+
+  // Panel-Elemente
+  var thread=$("#thread"), slotMain=$("#slotMain"), slotWho=$("#slotWho"), slotWhat=$("#slotWhat"), slotBadge=$("#slotBadge"),
+      refill=$("#refill"), refillWho=$("#refillWho"), tally=$("#tally"), chatWho=$("#chatWho");
+
+  function fmtEuro(n){ return (Math.round(n)).toLocaleString("de-DE")+" €"; }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, reduced?0:ms); }); }
+  function scrollDown(){ thread.scrollTop=thread.scrollHeight; }
+
+  function bubble(side, text){
+    var el=document.createElement("div"); el.className="msg "+side;
+    var from=document.createElement("span"); from.className="from";
+    from.textContent = side==="out" ? sHead() : cur().kunde;
+    el.appendChild(from);
+    el.appendChild(document.createTextNode(text));
+    thread.appendChild(el); scrollDown(); return el;
+  }
+  function addChips(parent, items){
+    var box=document.createElement("div"); box.className="chips";
+    items.forEach(function(it){
+      var c=document.createElement("button"); c.type="button"; c.className="chip"; c.textContent=it.t;
+      if(it.disabled) c.disabled=true;
+      if(it.tapped){ c.classList.add("tapped"); c.disabled=true; }
+      if(it.onclick) c.addEventListener("click", it.onclick);
+      box.appendChild(c);
+    });
+    parent.appendChild(box); scrollDown(); return box;
+  }
+
+  var token=0, picked=false, autoTimer=null;
+
+  function resetPanel(){
+    slotMain.className="slotcard";
+    slotWho.textContent = cur().kunde;
+    slotWhat.textContent = cur().leistung+" · letzte vor "+cur().faellig;
+    slotBadge.className="badge warn"; slotBadge.textContent="fällig";
+    refill.classList.remove("show");
+    refillWho.textContent=cur().naechster;
+    tally.className="amt idle"; tally.textContent="+0 €";
+  }
+
+  async function play(){
+    var my=++token; picked=false; if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; }
+    var d=cur();
+    chatWho.textContent=sHead();
+    thread.innerHTML=""; resetPanel();
+    slotMain.classList.add("wobble");
+
+    // Schritt 1: automatische Fälligkeits-Erinnerung an den Kunden
+    bubble("out", d.m1.replace("{S}", sName()));
+
+    // Schritt 2: Kunde sagt zu
+    await sleep(1100); if(my!==token) return;
+    bubble("in", d.m2);
+
+    // Schritt 3: System bietet freie Termine
+    await sleep(800); if(my!==token) return;
+    var offer=bubble("out", d.m3);
+    var chipDefs=d.slots.map(function(t){
+      return { t:t, onclick:function(){ pick(t, my); } };
+    });
+    addChips(offer, chipDefs);
+
+    // Auto-Pick, falls niemand tippt (mittlerer Termin)
+    autoTimer=setTimeout(function(){ if(!picked && my===token) pick(d.slots[1], my); }, reduced?700:2800);
+  }
+
+  async function pick(time, my){
+    if(my!==token || picked) return; picked=true;
+    if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; }
+    var d=cur();
+    // Chips: gewählten markieren, Rest sperren
+    var chips=thread.querySelectorAll(".chips");
+    var last=chips[chips.length-1];
+    if(last){ Array.prototype.forEach.call(last.querySelectorAll(".chip"), function(c){
+      if(c.textContent===time){ c.classList.add("tapped"); } c.disabled=true; }); }
+    scrollDown();
+
+    await sleep(620); if(my!==token) return;
+    bubble("out", d.m4.replace("{T}", time));
+
+    // Panel: gebucht
+    slotMain.className="slotcard saved";
+    slotBadge.className="badge ok"; slotBadge.textContent="Gebucht → "+time;
+    slotWhat.textContent=d.leistung+" · "+time+" gebucht";
+
+    await sleep(reduced?0:450); if(my!==token) return;
+    refill.classList.add("show");
+    countTo(tally, d.wert, 700);
+    tally.className="amt";
+  }
+
+  function countTo(el, target, dur){
+    if(reduced){ el.textContent="+"+fmtEuro(target); return; }
+    var start=0, t0=null;
+    function frame(ts){ if(t0===null) t0=ts; var p=Math.min(1,(ts-t0)/dur);
+      el.textContent="+"+fmtEuro(start+(target-start)*p);
+      if(p<1) requestAnimationFrame(frame); }
+    requestAnimationFrame(frame);
+  }
+
+  // ── Rechner ──
+  var cVal=$("#cVal"), cNo=$("#cNo"), lossNum=$("#lossNum"), breakNum=$("#breakNum");
+  function calc(){
+    var v=Math.max(0, parseFloat(cVal.value)||0);
+    var n=Math.max(0, parseFloat(cNo.value)||0);
+    lossNum.textContent=fmtEuro(v*n);
+    breakNum.textContent=fmtEuro(v*4.3);
+  }
+  cVal.addEventListener("input", calc);
+  cNo.addEventListener("input", calc);
+
+  // ── Eingaben verdrahten ──
+  function syncMeta(){
+    $("#varField").value=cur().label;
+    $("#unlockName").textContent=sHead();
+    try{ localStorage.setItem(KEYG,gewerkId); localStorage.setItem(KEYB,betrieb); }catch(e){}
+  }
+  gsel.addEventListener("change", function(){
+    gewerkId=gsel.value;
+    cVal.value=cur().wert; calc(); syncMeta(); play();
+  });
+  var nameTimer=null;
+  bin.addEventListener("input", function(){
+    betrieb=bin.value; chatWho.textContent=sHead(); syncMeta();
+    if(nameTimer) clearTimeout(nameTimer);
+    nameTimer=setTimeout(function(){ play(); }, 800);
+  });
+  $("#replay").addEventListener("click", function(){ play(); });
+
+  // ── Warteliste (gemeinsames Google-Sheet-Backend) mit optimistischer UI ──
+  var note=$("#note"); function flash(t,err){ note.textContent=t; note.style.color=err?"var(--danger)":"var(--accent)"; }
+  var cap=$("#capture"), buy=$("#buy");
+  var LEADKEY="wartungswecker.lead", ENDPOINT="https://script.google.com/macros/s/AKfycbzXwTCXDM5FejEF8VqoEVb-y1eAl4SttYu3gyK-_Zn9b0eLgSJn58gFGW5iDJ_ufe8t9w/exec";
+  try{ if(localStorage.getItem(LEADKEY)) flash("Du bist schon auf der Warteliste."); }catch(e){}
+  cap.addEventListener("submit", function(e){
+    e.preventDefault();
+    var email=$("#email").value.trim();
+    if(email.indexOf("@")<1){ flash("Bitte eine gültige E-Mail eingeben.",true); return; }
+    var btn=cap.querySelector("button[type=submit]"); var honey=(cap.querySelector("[name=_honey]")||{}).value||"";
+    btn.disabled=true; btn.textContent="Moment…";
+    function done(){ try{ localStorage.setItem(LEADKEY,email); }catch(x){} cap.reset(); btn.disabled=false; btn.textContent="Eingetragen ✓"; flash("Top! Du stehst auf der Warteliste und hörst von uns, sobald WartungsWecker live geht."); }
+    fetch(ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({email:email,projekt:"wartungswecker",gewerk:cur().label,einwilligung:true,quelle:location.href,_honey:honey})}).then(done).catch(done);
+  });
+  buy.addEventListener("click", function(e){
+    if((buy.getAttribute("href")||"").indexOf("{{")!==-1){ e.preventDefault();
+      flash("Der Zugang wird gerade eingerichtet — trag dich auf die Warteliste ein, du bist dann zuerst dran.");
+      $("#email").focus();
+    }
+  });
+
+  // ── Init ──
+  $("#yr").textContent=(new Date()).getFullYear();
+  cVal.value=cur().wert; calc(); syncMeta(); play();
+})();
+</script>
+</body>
+</html>
